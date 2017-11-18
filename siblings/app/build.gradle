@@ -1,0 +1,15 @@
+repositories {
+    mavenCentral()
+}
+
+apply plugin: 'scala'
+
+dependencies {
+    compile 'org.scala-lang:scala-library:2.11.8'
+    zinc 'com.typesafe.zinc:zinc:0.3.9'
+
+    compile project(':lib')
+}
+
+apply plugin:'application'
+mainClassName = "com.groovescale.App1"

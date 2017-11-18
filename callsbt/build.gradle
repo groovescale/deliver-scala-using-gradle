@@ -1,0 +1,39 @@
+task wrapper(type: Wrapper) {
+    gradleVersion = '3.1'
+}
+
+apply plugin: 'application'
+
+def adirBase = buildscript.sourceFile.getParentFile()
+
+def invocationSbt = [
+    "-Xms512M",
+    "-Xmx1024M",
+    "-Xss1M",
+    "-XX:+CMSClassUnloadingEnabled",
+    "-jar", "$adirBase/gradle/sbt/sbt-launch.jar"
+    ]
+
+task callsbtUberjar() {
+    doLast {
+        exec {
+            workingDir "$adirBase/data-cleaning-spark_scala"
+            executable "java"
+            args = invocationSbt + [
+                "assembly" ]
+        }
+    }
+}
+
+task callsbtClean() {
+    doLast {
+        exec {
+            workingDir "$adirBase/data-cleaning-spark_scala"
+            executable "java"
+            args = invocationSbt + [
+                "clean" ]
+        }
+    }
+}
+
+clean.dependsOn 'callsbtClean' // "clean" is created by the "application" plugin

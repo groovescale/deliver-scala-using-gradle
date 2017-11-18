@@ -1,0 +1,68 @@
+
+task wrapper(type: Wrapper) {
+    gradleVersion = '3.1'
+}
+
+apply plugin: 'base'
+
+def adirBase = buildscript.sourceFile.getParentFile()
+def nameOfRepo = adirBase.canonicalFile.name
+
+task customtasks() {
+    description = "Lists all tasks pertitent to the $nameOfRepo repository"
+    doLast {
+        println("All tasks pertitent to the $nameOfRepo repository")
+        println("-----------------------------------------------------")
+        allprojects.each { project ->
+            project.tasks.each { task ->
+                if (task.group && task.group == 'custom') {
+                    def d = task.description == null ? '' : " - " + task.description
+                    println(task.name + d)
+                }
+            }
+        }
+        println()
+    }
+}
+
+task compile() {
+}
+compile.group = 'custom'
+compile.description = "Compiles binary code artifacts"
+clean.group = 'custom' // clean is created by the 'base' plugin (or inherited via 'application')
+clean.description = "Deletes binary code artifacts"
+task test() {
+    doFirst {
+        exec {
+            executable "sh"
+            workingDir "${adirBase}/virtualization"
+            // cheat: ../
+            args "${adirBase}/../gradlew","--no-daemon","clean"
+        }
+        exec {
+            executable "sh"
+            workingDir "${adirBase}/virtualization"
+            args "${adirBase}/../gradlew","--no-daemon","setup"
+        }
+        exec {
+            executable "sh"
+            workingDir "${adirBase}/virtualization"
+            args "${adirBase}/../gradlew","--no-daemon","run"
+        }
+        def timeRun1Finished=System.currentTimeMillis()
+        exec {
+            executable "sh"
+            workingDir "${adirBase}/virtualization"
+            args "${adirBase}/../gradlew","--no-daemon","run"
+        }
+        exec {
+            executable "sh"
+            workingDir "${adirBase}/virtualization"
+            args "${adirBase}/../gradlew","--no-daemon","checkRuns","-DtimeRun1Finished=${timeRun1Finished}"
+        }
+    }
+}
+test.group = 'custom'
+test.description = "Runs tests"
+
+

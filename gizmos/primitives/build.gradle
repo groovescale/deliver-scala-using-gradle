@@ -1,0 +1,92 @@
+apply plugin: 'base'
+
+defaultTasks 'first'
+
+// testing doFirst and doLast
+
+def group1 = 'test_doFirst_doLast'
+
+task use1_println_doLast(group:group1) {
+    doLast {
+        println "hello 1 from println doLast"
+    }
+}
+
+task use1_println_doFirst(group:group1) {
+    doFirst {
+        println "hello 1 from println doFirst"
+    }
+}
+
+task use1_println(group:group1) {
+    println "hello 1 from println"
+}
+
+// nested doFirst and doLast do not work, but println directly in a task does
+def group2 = 'test_nested_doFirst_doLast'
+
+task nested_doFirst_doLast(group:group2) {
+    doFirst {
+        task use2_println_doLast {
+            doLast {
+                println "hello 2 from println doLast"
+            }
+        }
+
+        task use2_println_doFirst {
+            doFirst {
+                println "hello 2 from println doFirst"
+            }
+        }
+
+        task use2_println {
+            println "hello 2 from println"
+        }
+    }
+}
+
+// testing exec
+def group3 = 'test_exec'
+
+task print_anything(group:group3) {
+    exec {
+        executable "sh"
+        args "-c","echo hello"
+    }
+}
+
+task get_from_env(group:group3) {
+    doFirst {
+        exec {
+            executable "sh"
+            args "-c","echo \${USER}"
+        }
+    }
+}
+
+task print_two_things(group:group3) {
+    doFirst {
+        exec {
+            executable "sh"
+            args "-c","echo one of two"
+        }
+        exec {
+            executable "sh"
+            args "-c","echo two of two"
+        }
+    }
+}
+
+def group4 = 'test_composition'
+
+// testing def
+def printTaskName = { task ->
+    println "Run ${task.name}"
+}
+
+task first(group:group4) {
+    doFirst {
+        printTaskName
+    }
+}
+

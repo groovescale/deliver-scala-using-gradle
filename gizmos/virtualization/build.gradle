@@ -1,0 +1,144 @@
+apply plugin: 'base'
+
+buildscript {
+    repositories {
+        mavenCentral();
+    }
+    dependencies {
+        classpath group: 'commons-io', name: 'commons-io', version: '2.6'
+    }
+}
+
+
+import java.io.File
+import org.apache.commons.io.FileUtils
+def adirBase = buildscript.sourceFile.getParentFile()
+def adirTemp = new File(adirBase, "temp")
+
+task setup {
+    doFirst {
+        if(!adirTemp.exists()) {
+            adirTemp.mkdir()
+        }
+    }
+}
+
+task cleanTemp {
+    doFirst {
+        if(adirTemp.exists()) {
+            exec {
+                executable "rm"
+                args "-r",adirTemp
+            }
+        }      
+    }
+}
+clean.dependsOn 'cleanTemp'
+
+task run {
+}
+task checkRuns {
+}
+def ageOfMarker(f) {
+    def timeRun1Finished = new Long(System.getProperty("timeRun1Finished"))
+    def timeOfMarker = f.lastModified()
+    return timeOfMarker - timeRun1Finished    
+}
+// testing onlyif
+
+def groupv1 = 'test_composition'
+
+// inactive runs appear as:
+//   :onlyif_1 SKIPPED
+task onlyif_1(group:groupv1) {
+    def dir = new File(adirTemp,'assemble1')
+    //enabled = dir.exists()
+    onlyIf { task ->
+        println("in onlyif_1")
+        return !dir.exists()
+    }
+    doFirst {
+        exec {
+            executable "mkdir"
+            args "$dir"
+        }
+        FileUtils.touch(new File(adirTemp,"ran_onlyif_1"))
+    }
+}
+run.dependsOn 'onlyif_1'
+task setup_onlyif_1 {
+    doLast {
+        FileUtils.touch(new File(adirTemp,"assemble1"))
+    }
+}
+setup.dependsOn 'setup_onlyif_1'
+task checkRuns_onlyif_1 {
+    doFirst {
+        def dt = ageOfMarker(new File(adirTemp,"ran_onlyif_1"))
+        assert(dt<0)
+    }
+}
+checkRuns.dependsOn 'checkRuns_onlyif_1'
+
+
+// Relies on the "task history" feature, so will report on first run: "No history is available for task"
+// https://discuss.gradle.org/t/any-way-to-configure-gradle-to-always-trust-outputs-uptodatewhen-overriding-task-history-check/5994
+
+// inactive runs appear as:
+//   :uptodatewhen_1 UP-TO-DATE
+
+task uptodatewhen_1(group:groupv1) {
+    def dir = new File(adirTemp,'assemble2')
+    //enabled = dir.exists()
+    outputs.upToDateWhen { task ->
+        println("in upToDateWhen_1")
+        return dir.exists()
+    }
+    doFirst {
+        FileUtils.touch(dir)
+        FileUtils.touch(new File(adirTemp,"uptodatewhen_1"))
+    }
+}
+run.dependsOn 'uptodatewhen_1'
+task setup_uptodatewhen_1 {
+    doLast {
+        FileUtils.touch(new File(adirTemp,"assemble2"))
+    }
+}
+setup.dependsOn 'setup_uptodatewhen_1'
+task check_uptodatewhen_1 {
+    doFirst {
+        def dt = ageOfMarker(new File(adirTemp,"uptodatewhen_1"))
+        assert(dt<0)
+    }
+}
+checkRuns.dependsOn 'check_uptodatewhen_1'
+
+/*
+task listDirectory {
+    def dir = new File('assemble')
+    enabled = dir.exists()
+    onlyIf { task ->
+        println("in onlyif_1")
+        return dir.exists()
+    }
+    doLast {
+        println "List directory contents: ${dir.listFiles().join(',')}"
+    }
+}*/
+
+
+// testing reflection
+def group5 = 'test_reflection'
+
+task reflect_methods1(group:group5) << { task ->
+    print("reflected methods of task: ")
+    println(task.metaClass.methods*.name.sort().unique() )
+}
+
+task reflect_methods2(group:group5) {
+    doFirst { task ->
+        print("reflected methods of task: ")
+        println(task.metaClass.methods*.name.sort().unique() )
+    }
+}
